@@ -1,0 +1,14 @@
+problems: 
+- (solved) some stocks are not recent
+- some have mixed data, like giving year - year rev instead of quarter
+
+ideas:
+- technicals + fundumentals
+- remove sectors like banking
+- look for further clues to shorten in investing book
+- look for further clues to shorten in POUNDING the table podcast
+
+hypothesis to test:
+- check for every stock (including delisted) whether 4 consecutive growth
+    quarters lead to a stock price for the next 30 days
+
