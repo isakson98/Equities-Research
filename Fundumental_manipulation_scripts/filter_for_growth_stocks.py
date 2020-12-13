@@ -2,7 +2,11 @@ import pandas as pd
 import os
 import requests
 import time
-from get_fundumentals import categories_dict, sub_categories_dict
+
+import sys
+sys.path.append(os.getcwd()) # current directory must be root project directory
+
+from Fundumental_fetch_scripts.get_fundumentals import categories_dict, sub_categories_dict
 from api_keys import tda_key
 
 api_key = tda_key
@@ -10,7 +14,7 @@ api_key = tda_key
 path_to_directory = categories_dict["Income"]["Path"] + sub_categories_dict["Current"]
 TOTAL_QUARTERS = 4
 
-directory = "Processed_datasets/"
+directory = "ALL DATA/Processed_datasets/"
 def check_all_current_for_growth():
     file_winners = directory + "Growing revenue " + str(TOTAL_QUARTERS) +  " quarters.txt"
     files = os.listdir(path_to_directory)

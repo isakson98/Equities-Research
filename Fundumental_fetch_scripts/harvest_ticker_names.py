@@ -7,7 +7,7 @@ ALL_STOCKS_URL = "https://stockanalysis.com/stocks"
 SELECTED_STOCKS_PARTIAL_URL = "https://stockanalysis.com/actions/"
 ACTION_TYPE = ["changes", "spinoffs", "splits", "delisted"]
 
-DIRECTORY_TO_SAVE_IN = "All_ticker_symbols/"
+DIRECTORY_TO_SAVE_IN = "ALL DATA/All_ticker_symbols/"
 
 # grabbing list of stocks from stockanalysis.com
 def Harvest_ticker_names():

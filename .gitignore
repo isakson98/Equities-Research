@@ -1,6 +1,8 @@
-/__pycache__
+**file with the same name everywhere*
+**__pycache__* 
 /All_ticker_symbols/
 /Fundumentals/
+/ALL DATA
 /.vscode/
 /test.py
 /api_keys.py

@@ -1,17 +1,20 @@
-from harvest_ticker_names import Get_ticker_dir_map
+# importing from same folder, but it is a subfolder
 import requests
 import pandas as pd
-import os
 import urllib
-import sys
+import os
 
+import sys
+sys.path.append(os.getcwd()) # current directory must be root project directory
+
+from Fundumental_fetch_scripts.harvest_ticker_names import Get_ticker_dir_map
 from api_keys import fmp_key
 
 api_key = fmp_key
 
 
 # every current dir will have all directories of the next list
-starting_dir = ["/Fundumentals"]
+starting_dir = ["ALL DATA/Fundumentals"]
 categories = ["/Balance Sheet Statement",
               "/Cash Flow Statement",
               "/Income Statement"]
