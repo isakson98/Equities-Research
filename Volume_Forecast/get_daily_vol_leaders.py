@@ -2,6 +2,7 @@ import pandas as pd
 from datetime import datetime
 import heapq
 import requests
+import urllib
 import os
 
 import sys
@@ -26,7 +27,7 @@ def get_working_days(start, end=datetime.date(datetime.now())):
 DIRECTORY_WITH_TICKERS = "ALL DATA/All_ticker_symbols/"
 types = ["current", "delisted", "changes"]
 
-# 2. run through all CURRENT and DELISTED stocks for that day
+# 2. run through all CURRENT and DELISTED and CHANGES stocks for that day
 def get_leaders_for_period(metric, start, end=datetime.date(datetime.now())):
 
     current_df = pd.read_csv(DIRECTORY_WITH_TICKERS + types[0] + ".csv")
@@ -38,9 +39,10 @@ def get_leaders_for_period(metric, start, end=datetime.date(datetime.now())):
     business_days = get_working_days(start, end)
 
     # from earliest to latest
-    for date in business_days:
+    for index, date in enumerate(business_days):
         todays_ticker_series = get_tickers_for_the_day(current_df, delisted_df, changes_df, date)
         get_leaders_for_one_day(date, todays_ticker_series, metric)
+        print("day " + str(index))
 
 # first get all not yet delisted tickers = everything from first element until date given
 # do changes
@@ -52,11 +54,13 @@ def get_tickers_for_the_day(current_df, delisted_df, changes_df, date):
     basically everything delisted from the date in param until now must be added back
     '''
     delisted_list_indices = delisted_df.index[delisted_df["Date"] >= date].tolist()
-    # index at which the earlist stock has been delisted
-    index_last_date = delisted_list_indices[-1] 
-    # append to existing stocks all stocks that haven't yet been delisted
-    not_yet_delisted_df = delisted_df["Stock Symbol"][:index_last_date + 1]
-    todays_ticker_series = todays_ticker_series.append(not_yet_delisted_df, ignore_index=True) 
+    # nothing has been delisted yet
+    if len(delisted_list_indices) != 0:
+        # index at which the earlist stock has been delisted
+        index_last_date = delisted_list_indices[-1] 
+        # append to existing stocks all stocks that haven't yet been delisted
+        not_yet_delisted_df = delisted_df["Stock Symbol"][:index_last_date + 1]
+        todays_ticker_series = todays_ticker_series.append(not_yet_delisted_df, ignore_index=True) 
 
     '''
     basically all changes that happened to stocks in current
@@ -64,25 +68,65 @@ def get_tickers_for_the_day(current_df, delisted_df, changes_df, date):
     '''
     # getting list of indices that have changes
     changes_list_indices = changes_df.index[changes_df["Date"] >= date].tolist()
+    if len(changes_list_indices) != 0:
+        number_changes = len(changes_list_indices)
+        hash_map = {}
+        # vectorize this sucker
+        for index, changes_row in changes_df.head(number_changes).iterrows():
+            new_ticker = changes_row["New Symbol"]
+            hash_map[new_ticker] = changes_row["Old Symbol"]
 
-    number_changes = len(changes_list_indices)
-    hash_map = {}
-    # vectorize this sucker
-    for index, changes_row in changes_df.head(number_changes).iterrows():
-        new_ticker = changes_row["New Symbol"]
-        hash_map[new_ticker] = changes_row["Old Symbol"]
-
-    for index, today_ticker in todays_ticker_series.items():
-        if today_ticker in hash_map:
-            print("Changing " + today_ticker + " for " + hash_map[today_ticker])
-            todays_ticker_series[index] = hash_map[today_ticker]
-            todays_ticker_series[index] = hash_map[today_ticker]
-
+        for index, today_ticker in todays_ticker_series.items():
+            if today_ticker in hash_map:
+                todays_ticker_series[index] = hash_map[today_ticker]
+                todays_ticker_series[index] = hash_map[today_ticker]
 
     return todays_ticker_series
 
 
-TOP_ELEMENTS = 10
+MAX_FLOAT = 100
+historical_path = "ALL DATA/Historical"
+def get_csv_based_on_float(start, end=datetime.date(datetime.now())):
+
+    current_df = pd.read_csv(DIRECTORY_WITH_TICKERS + types[0] + ".csv")
+    indices_small_floats = current_df.index[current_df["Float"] < MAX_FLOAT].tolist()
+
+    ticker_missing = []
+    for index in indices_small_floats:
+        ticker_missing.append(current_df["Ticker"][index])
+
+    list_of_empty = []
+    for index, ticker in enumerate(ticker_missing):
+        file_name = historical_path + "/" + ticker + "_" + start + "_" + str(end) + ".csv"
+        if os.path.exists(file_name):
+            print("skip " + ticker)
+            continue
+
+        url = "https://fmpcloud.io/api/v3/historical-price-full/" + ticker + "?"
+        
+        params = {
+            "from": start,
+            "to": end,
+            "datatype": "csv",
+            "apikey": fmp_key
+        }
+
+        content_url = url + urllib.parse.urlencode(params)
+        downloaded_csv = pd.read_csv(content_url, encoding="iso-8859-1")
+        if len(downloaded_csv) < 2:
+            print(ticker)
+            list_of_empty.append(ticker)
+        downloaded_csv.to_csv(file_name)
+        if index % 100 == 0:
+            print(index)
+
+    with open("empty historical " +start + "_" + str(end), "a+") as writer:
+        writer.write(list_of_empty)
+
+
+
+
+TOP_ELEMENTS = 20
 # for the delisted -> find index at which date matches date in delisted row
 def get_leaders_for_one_day(date, symbols, metric):
 
@@ -94,22 +138,46 @@ def get_leaders_for_one_day(date, symbols, metric):
         "apikey" : fmp_key,
     }
 
-    heap_structure = []
+    sorted_list = []
 
-    for ticker in symbols:
-        url = url + ticker + "?"
-        content = requests.get(url,params = params)
+    track_empty_results = []
+    for index, ticker in enumerate(symbols):
+        # url = url + ticker + "?"
+        content = requests.get(url + ticker + "?",params = params)
         data = content.json()
+        # empty results
+        if len(data) == 0:
+            track_empty_results.append(ticker)
+            continue
+        try:
+            attribute_compared = data["historical"][0][metric]
+        except:
+            print(data)
+
         # populate heap while it is not 10
         # i want the max heap, and theres no built in solution, so i invert the numbers to negative
-        if len(heap_structure) < TOP_ELEMENTS:
-            heapq.heappush(heap_structure, -data["volume"])
+        if len(sorted_list) < TOP_ELEMENTS:
+            sorted_list.append([attribute_compared, ticker])
+            sorted_list = sorted(sorted_list, key = lambda x : x[0])
         # if new element has higher volume and heap is full, switch it
-        elif data["volume"] > (heapq.nsmallest(1,heap_structure)) and len(heap_structure) >= TOP_ELEMENTS:
-            heapq.heappushpop(heap_structure, -data["volume"])
+        elif sorted_list[0][0] < attribute_compared:
+            sorted_list[0] = [attribute_compared, ticker]
+            sorted_list = sorted(sorted_list, key = lambda x : x[0])
+
+        print("Ticker in a day: " + str(index) + " " + str(attribute_compared))
+
+    sorted_list = [str(i[1]) for i in sorted_list]
+    # insert date as index at first place
+    sorted_list.insert(0, date)
+    one_line = ","
+    one_line = one_line.join(sorted_list)
+
+    FILE_NAME = "Top " + TOP_ELEMENTS +  " volume leaders.csv"
+    with open("ALL DATA/Processed_datasets/" + FILE_NAME, "a") as writer:
+        writer.write(one_line + "\n")
 
 
-    # when writing to file, undo the negatives for volume
+
 
 
 
@@ -120,6 +188,3 @@ def get_leaders_for_one_day(date, symbols, metric):
 #   keep track of delisted index so that you can start moving 
 
 # 4. save heap into a file as one row, seprated by commas
-
-
-get_leaders_for_period("volume", "2020-10-09")

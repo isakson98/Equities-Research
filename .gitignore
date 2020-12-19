@@ -1,9 +1,10 @@
 **file with the same name everywhere*
 **__pycache__* 
-/All_ticker_symbols/
-/Fundumentals/
-/ALL DATA
+/ALL DATA/All_ticker_symbols/
+/ALL DATA/Fundumentals/
+/ALL DATA/Historical
 /.vscode/
 /test.py
 /api_keys.py
 /visualize.py
+SCRIPT IDEAS.txt

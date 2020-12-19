@@ -17,7 +17,8 @@ api_key = fmp_key
 starting_dir = ["ALL DATA/Fundumentals"]
 categories = ["/Balance Sheet Statement",
               "/Cash Flow Statement",
-              "/Income Statement"]
+              "/Income Statement",
+]
 sub_categories = ["/Current Stocks"]
 fundies_categories = [starting_dir, categories, sub_categories]
 
