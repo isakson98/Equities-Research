@@ -7,20 +7,26 @@ import sys
 sys.path.append(os.getcwd()) # current directory must be root project directory
 
 from Fundumental_fetch_scripts.get_fundumentals import categories_dict, sub_categories_dict
+from Data_Access.Find_file_path import find_file
 from api_keys import tda_key
 
 api_key = tda_key
 
-path_to_directory = categories_dict["Income"]["Path"] + sub_categories_dict["Current"]
+local_path_to_income_dir = "Income Statement/Current Stocks"
 TOTAL_QUARTERS = 4
 
-directory = "ALL DATA/Processed_datasets/"
+directory = "Processed_datasets"
+
 def check_all_current_for_growth():
-    file_winners = directory + "Growing revenue " + str(TOTAL_QUARTERS) +  " quarters.txt"
-    files = os.listdir(path_to_directory)
+
+    full_path_to_income_dir = find_file(local_path_to_income_dir)
+    directory_to_save_in = find_file(directory)
+
+    file_winners = directory_to_save_in + "Growing revenue " + str(TOTAL_QUARTERS) +  " quarters.txt"
+    files = os.listdir(full_path_to_income_dir)
 
     for index, income_file in enumerate(files):
-        path_to_file = path_to_directory + "/" + income_file
+        path_to_file = full_path_to_income_dir + income_file
         split_list = income_file.split("_")
         ticker_name = split_list[0]
 
@@ -30,6 +36,8 @@ def check_all_current_for_growth():
 
         if index % 100 == 0:
             print(index)
+
+check_all_current_for_growth()
 
 def is_ticker_growing_rev(path_to_file):
 

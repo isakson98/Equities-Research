@@ -7,6 +7,7 @@ import os
 
 import sys
 sys.path.append(os.getcwd()) # current directory must be root project directory
+from Data_Access.Find_file_path import find_file
 from api_keys import fmp_key
 
 
@@ -24,17 +25,19 @@ def get_working_days(start, end=datetime.date(datetime.now())):
 
     return business_days
 
-DIRECTORY_WITH_TICKERS = "ALL DATA/All_ticker_symbols/"
+DIRECTORY_WITH_TICKERS = "All_ticker_symbols"
 types = ["current", "delisted", "changes"]
 
 # 2. run through all CURRENT and DELISTED and CHANGES stocks for that day
 def get_leaders_for_period(metric, start, end=datetime.date(datetime.now())):
 
-    current_df = pd.read_csv(DIRECTORY_WITH_TICKERS + types[0] + ".csv")
+    final_dir_with_tickers = find_file(DIRECTORY_WITH_TICKERS)
+
+    current_df = pd.read_csv(final_dir_with_tickers + types[0] + ".csv")
     # get all tickers that were not delisted at before this date
-    delisted_df = pd.read_csv(DIRECTORY_WITH_TICKERS + types[1] + ".csv")
+    delisted_df = pd.read_csv(final_dir_with_tickers + types[1] + ".csv")
     # get all tickers that were not delisted at before this date
-    changes_df = pd.read_csv(DIRECTORY_WITH_TICKERS + types[2] + ".csv")
+    changes_df = pd.read_csv(final_dir_with_tickers + types[2] + ".csv")
 
     business_days = get_working_days(start, end)
 
@@ -85,10 +88,13 @@ def get_tickers_for_the_day(current_df, delisted_df, changes_df, date):
 
 
 MAX_FLOAT = 100
-historical_path = "ALL DATA/Historical"
+historical_path = "Daily_period"
 def get_csv_based_on_float(start, end=datetime.date(datetime.now())):
 
-    current_df = pd.read_csv(DIRECTORY_WITH_TICKERS + types[0] + ".csv")
+    final_dir_with_tickers = find_file(DIRECTORY_WITH_TICKERS)
+    final_historical = find_file(historical_path)
+
+    current_df = pd.read_csv(final_dir_with_tickers + types[0] + ".csv")
     indices_small_floats = current_df.index[current_df["Float"] < MAX_FLOAT].tolist()
 
     ticker_missing = []
@@ -97,7 +103,7 @@ def get_csv_based_on_float(start, end=datetime.date(datetime.now())):
 
     list_of_empty = []
     for index, ticker in enumerate(ticker_missing):
-        file_name = historical_path + "/" + ticker + "_" + start + "_" + str(end) + ".csv"
+        file_name = final_historical + "/" + ticker + "_" + start + "_" + str(end) + ".csv"
         if os.path.exists(file_name):
             print("skip " + ticker)
             continue
@@ -120,15 +126,16 @@ def get_csv_based_on_float(start, end=datetime.date(datetime.now())):
         if index % 100 == 0:
             print(index)
 
-    with open("empty historical " +start + "_" + str(end), "a+") as writer:
+    with open("Empty historical " + str(start) + "_" + str(end), "a+") as writer:
         writer.write(list_of_empty)
 
 
-
-
+PATH_TO_WRITE_TO_LEADERS = "Processed_datasets"
 TOP_ELEMENTS = 20
 # for the delisted -> find index at which date matches date in delisted row
 def get_leaders_for_one_day(date, symbols, metric):
+
+    final_path_to_write = find_file(PATH_TO_WRITE_TO_LEADERS)
 
     url = "https://fmpcloud.io/api/v3/historical-price-full/"
     
@@ -173,18 +180,6 @@ def get_leaders_for_one_day(date, symbols, metric):
     one_line = one_line.join(sorted_list)
 
     FILE_NAME = "Top " + TOP_ELEMENTS +  " volume leaders.csv"
-    with open("ALL DATA/Processed_datasets/" + FILE_NAME, "a") as writer:
+    with open(final_path_to_write + FILE_NAME, "a") as writer:
         writer.write(one_line + "\n")
 
-
-
-
-
-
-
-# 2. create a heap of 10 elements for every day
-
-# 3. run through all CURRENT and DELISTED stocks for that day
-#   keep track of delisted index so that you can start moving 
-
-# 4. save heap into a file as one row, seprated by commas

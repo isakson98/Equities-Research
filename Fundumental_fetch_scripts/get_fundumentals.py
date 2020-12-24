@@ -8,6 +8,7 @@ import sys
 sys.path.append(os.getcwd()) # current directory must be root project directory
 
 from Fundumental_fetch_scripts.harvest_ticker_names import Get_ticker_dir_map
+from Data_Access.Find_file_path import find_file
 from api_keys import fmp_key
 
 api_key = fmp_key

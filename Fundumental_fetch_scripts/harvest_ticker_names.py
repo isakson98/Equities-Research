@@ -3,33 +3,44 @@ import requests
 import pandas as pd
 import os
 
+import sys
+sys.path.append(os.getcwd()) # current directory must be root project directory
+from Data_Access.Find_file_path import find_file
+
 ALL_STOCKS_URL = "https://stockanalysis.com/stocks"
 SELECTED_STOCKS_PARTIAL_URL = "https://stockanalysis.com/actions/"
 ACTION_TYPE = ["changes", "spinoffs", "splits", "delisted"]
 
-DIRECTORY_TO_SAVE_IN = "ALL DATA/All_ticker_symbols/"
+# make sure this folder already exists
+# due to changing nature of folders, i don't want to create a fixed structure
+# so creating manually is the way to go
+DIRECTORY_TO_SAVE_IN = "All_ticker_symbols"
 
 # grabbing list of stocks from stockanalysis.com
-def Harvest_ticker_names():
-    if os.path.isdir(DIRECTORY_TO_SAVE_IN) == False:
-        # get current working directtory
-        path = os.getcwd()
-        path += DIRECTORY_TO_SAVE_IN
-        os.mkdir(path)
+def Harvest_ALL_ticker_names():
+    final_path_to_save = find_file(DIRECTORY_TO_SAVE_IN)
+    
+    if os.path.isdir(final_path_to_save) == "":
+        print("Directory " + DIRECTORY_TO_SAVE_IN + " does not exit")
+        print("Please create one manually")
         return
 
     Harvest_all_stocks()
     for stock_type in ACTION_TYPE:
         Harvest_selected_stocks(stock_type)
 
+
+
 """
 Fetches one list of > 6k stocks and saves it into a file as is
 seperate function because the format is different on this page
 """
 def Harvest_all_stocks():
+    final_path_to_save = find_file(DIRECTORY_TO_SAVE_IN)
     # check if file already exists
-    name_of_file = DIRECTORY_TO_SAVE_IN + "current.csv"
+    name_of_file = final_path_to_save + "current.csv"
     if os.path.exists(name_of_file):
+        print(name_of_file + " already exists.")
         return
 
     # get the page html content and filter it through bs4
@@ -60,9 +71,11 @@ Fetches data from 4 different web pages on the same website
 Saves the data as is into 4 differently named csv files
 """
 def Harvest_selected_stocks(stock_type):
-    name_of_file = DIRECTORY_TO_SAVE_IN + stock_type + ".csv"
+    final_path_to_save = find_file(DIRECTORY_TO_SAVE_IN)
+    name_of_file = final_path_to_save + stock_type + ".csv"
     if os.path.exists(name_of_file):
-            return
+        print(name_of_file + " already exists.")
+        return
 
     page_html = requests.get(SELECTED_STOCKS_PARTIAL_URL + stock_type).text
     parse = BeautifulSoup(page_html, 'lxml')
@@ -93,11 +106,13 @@ def Harvest_selected_stocks(stock_type):
     ticker_and_name_df = pd.DataFrame(selected_list[1:], columns=column_names)
     ticker_and_name_df.to_csv(name_of_file, index=False)
 
+
+# DO I NEED THIS FUNCTION?
 def Get_ticker_dir_map():
-    # get list of all current files with csv extentions
+    final_path_to_save = find_file(DIRECTORY_TO_SAVE_IN)
 
     # add directory path to their string
-    current_path = os.getcwd() + "/" + DIRECTORY_TO_SAVE_IN
+    current_path = os.getcwd() + "/" + final_path_to_save
 
     files = os.listdir(current_path)
     csv_files = [single_csv for single_csv in files if single_csv.endswith(".csv")]
@@ -109,8 +124,4 @@ def Get_ticker_dir_map():
         hash_map[formatted_name] = current_path + csv_file
 
     return hash_map
-
-
-# Get_ticker_dir_map()
-# Harvest_ticker_names()
 
