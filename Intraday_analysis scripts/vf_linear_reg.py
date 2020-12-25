@@ -31,6 +31,7 @@ def vf_every_time_period(file_to_read):
 
     # calculates volume forecast for each row from 5min to eod
     for i in range(volume_only.shape[1] - 1):
+        print(i)
         X = np.array(volume_only.iloc[:, :-1])
         y = np.array(volume_only.iloc[:, -1:])
         X = preprocessing.scale(X)
@@ -66,6 +67,7 @@ def vf_gradual_till_EOD(file_to_read):
     y = np.array(volume_only.iloc[:, -1:])
     # calculates volume forecast for each row from 5min to eod
     for i in range(volume_only.shape[1] - 2):
+        print(i)
         X = np.array(volume_only.iloc[:, :-1])
         X = preprocessing.scale(X)
 
@@ -128,16 +130,6 @@ def compare_vf_with_real():
     }
     
     bears_volume_dict  = {
-        "PM": 0, 
-        "1 min" : 0,
-        "5 min" : 0,
-        "15 min" : 0, 
-        "30 min" : 0, 
-        "60 min" : 0,
-        "EOD" : 0,
-    }
-
-    mix_volume_dict  = {
         "PM": 0, 
         "1 min" : 0,
         "5 min" : 0,
