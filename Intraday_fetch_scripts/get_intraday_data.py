@@ -4,6 +4,8 @@ import datetime
 import urllib
 import requests
 import time
+from progress.bar import Bar
+import numpy as np
 
 import sys
 sys.path.append(os.getcwd()) # current directory must be root project directory
@@ -11,10 +13,10 @@ from Intraday_fetch_scripts.get_daily_vol_leaders import get_working_days
 from Data_Access.Find_file_path import find_file
 from api_keys import tda_key
 
-local_historical_directory = "Daily_period"
-historical_directory = find_file(local_historical_directory)
+# local_historical_directory = "Daily_period"
+# historical_directory = find_file(local_historical_directory)
 
-def delete_copies():
+def delete_copies(historical_directory):
     csv_files = os.listdir(historical_directory)
     for csv in csv_files:
         current_day = csv[-6:]
@@ -24,9 +26,9 @@ def delete_copies():
             print(csv)
             os.remove(historical_directory + csv)
 
-TOP_ELEMENTS = 100
+# TOP_ELEMENTS = 100
 #  for all tickers in the dataset
-def compare_daily_attribute(attribute):
+def compare_daily_attribute(attribute, historical_directory, TOP_ELEMENTS):
 
     csv_files = os.listdir(historical_directory)
     content = csv_files[0].split("_")
@@ -73,20 +75,20 @@ def compare_daily_attribute(attribute):
     return
 
 
-part_hist_intraday_dir = "Intraday_formated"
-historical_intraday_dir = find_file(part_hist_intraday_dir)
+# part_hist_intraday_dir = "Intraday_formated"
+# historical_intraday_dir = find_file(part_hist_intraday_dir)
 
-ticker_100_final = "Top 100 volume leaders.csv"
-ticker_100_path = find_file(ticker_100_final)
+# ticker_100_final = "Top 100 volume leaders.csv"
+# ticker_100_path = find_file(ticker_100_final)
 
-raw_folder_to_store = "Intraday_raw"
-raw_folder_to_store = find_file(raw_folder_to_store)
+# raw_folder_to_store = "Intraday_raw"
+# raw_folder_to_store = find_file(raw_folder_to_store)
 
 '''
 reading top 100 volume tickers from the file,
 getting their intraday data and posting 
 '''
-def get_whole_intraday():
+def get_whole_intraday(ticker_100_path, raw_folder_to_store):
 
     tickers_leaders = pd.read_csv(ticker_100_path)
     for index, row in tickers_leaders.iterrows():
@@ -129,12 +131,12 @@ def get_whole_intraday():
         print(index)
 
 
-intraday_path_formatted = "Intraday_formated"
-intraday_path_formatted = find_file(intraday_path_formatted)
-intraday_path_all = intraday_path_formatted + "Intra_All.csv"
+# intraday_path_formatted = "Intraday_formated"
+# intraday_path_formatted = find_file(intraday_path_formatted)
+# intraday_path_all = intraday_path_formatted + "Intra_All.csv"
 
-possibilites  = ["Volume" , "Highs_Lows"]
-def merge_exisiting_intraday():
+# possibilites  = ["Volume" , "Highs_Lows"]
+def merge_exisiting_intraday(possibilites, intraday_path_formatted, intraday_path_all):
 
     # collect dfs for merging
     dataframes_to_merge = []
@@ -169,8 +171,30 @@ def merge_exisiting_intraday():
     return
 
         
-get_whole_intraday()
+def add_cols_to_formatted_dataset(dir_to_search, file_to_add_to, columns_to_add):
 
+    intra_df = pd.read_csv(file_to_add_to)
+    new_cols = list(set(columns_to_add) - set(intra_df.columns))
+    # add new columns to existing df
+    for col in new_cols:
+        intra_df[col] = np.nan
+
+    # _2020-11-18_2020-12-17.csv
+    # adding new raw columns
+    bar = Bar('Processing', max=len(intra_df))
+    for index, row in intra_df.iterrows():
+        date = intra_df.at[index, "date"]
+        ticker = intra_df.at[index, "ticker"]
+        daily_file_path = dir_to_search + ticker + "_2020-11-18_2020-12-17.csv"
+        daily_df = pd.read_csv(daily_file_path)
+        for col in new_cols:
+            daily_index_list = daily_df.index[daily_df["date"] == date].tolist()
+            daily_index = daily_index_list[0]
+            intra_df.at[index, col] =  daily_df.at[daily_index, col]
+        bar.next()
+    bar.finish()
+    
+    intra_df.to_csv(file_to_add_to, index=False)
 
 
 
